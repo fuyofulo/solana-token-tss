@@ -13,7 +13,15 @@ use spl_token;
 
 use crate::error::Error;
 use crate::serialization::{AggMessage1, SecretAggStepOne, PartialSignature};
-use crate::token::get_ata_address;
+
+
+/// Helper function to convert aggregated key to Solana pubkey
+pub fn agg_key_to_pubkey(agg_key: &musig2::PublicKeyAgg) -> Pubkey {
+    let agg_bytes = agg_key.agg_public_key.to_bytes(true);
+    let mut pubkey_bytes = [0u8; 32];
+    pubkey_bytes.copy_from_slice(&agg_bytes);
+    Pubkey::from(pubkey_bytes)
+}
 
 /// Create the aggregate public key from a list of public keys
 /// Pass key=None if you don't care about the coefficient (typically for key aggregation only)
@@ -41,7 +49,6 @@ pub fn key_agg(keys: Vec<Pubkey>, key: Option<Pubkey>) -> Result<musig2::PublicK
 /// This is the first step in the MPC signing process
 pub fn step_one(keypair: Keypair) -> (AggMessage1, SecretAggStepOne) {
     let extended_keypair = ExpandedKeyPair::create_from_private_key(keypair.secret().to_bytes());
-    // we don't really need to pass a message here.
     let (private_nonces, public_nonces) = musig2::generate_partial_nonces(&extended_keypair, None);
 
     (
@@ -68,10 +75,7 @@ pub fn step_two_token(
 
     // Generate the aggregate key together with the coefficient of the current keypair
     let aggkey = key_agg(keys, Some(keypair.pubkey()))?;
-    let agg_bytes = aggkey.agg_public_key.to_bytes(true);
-    let mut pubkey_bytes = [0u8; 32];
-    pubkey_bytes.copy_from_slice(&agg_bytes);
-    let aggpubkey = Pubkey::from(pubkey_bytes);
+    let aggpubkey = agg_key_to_pubkey(&aggkey);
     let extended_keypair = ExpandedKeyPair::create_from_private_key(keypair.secret().to_bytes());
 
     // Create the unsigned token transaction
@@ -101,8 +105,8 @@ pub fn create_unsigned_token_transaction(
     rpc_client: &RpcClient,
 ) -> Result<Transaction, Error> {
     // Calculate source and destination ATAs
-    let source_ata = get_ata_address(payer, &mint);
-    let destination_ata = get_ata_address(to, &mint);
+    let source_ata = spl_associated_token_account::get_associated_token_address(payer, &mint);
+    let destination_ata = spl_associated_token_account::get_associated_token_address(to, &mint);
     
     let mut instructions = Vec::new();
     
@@ -149,10 +153,7 @@ pub fn sign_and_broadcast_token(
     rpc_client: &RpcClient,
 ) -> Result<Transaction, Error> {
     let aggkey = key_agg(keys.clone(), None)?;
-    let agg_bytes = aggkey.agg_public_key.to_bytes(true);
-    let mut pubkey_bytes = [0u8; 32];
-    pubkey_bytes.copy_from_slice(&agg_bytes);
-    let aggpubkey = Pubkey::from(pubkey_bytes);
+    let aggpubkey = agg_key_to_pubkey(&aggkey);
 
     // Make sure all the `R`s are the same (first 32 bytes of each signature)
     if !signatures[1..].iter().map(|s| &s.0.as_ref()[..32]).all(|s| s == &signatures[0].0.as_ref()[..32]) {
@@ -220,10 +221,7 @@ struct PartialSigner {
 
 impl solana_sdk::signer::Signer for PartialSigner {
     fn try_pubkey(&self) -> Result<Pubkey, solana_sdk::signer::SignerError> {
-        let agg_bytes = self.aggregated_pubkey.agg_public_key.to_bytes(true);
-        let mut pubkey_bytes = [0u8; 32];
-        pubkey_bytes.copy_from_slice(&agg_bytes);
-        Ok(Pubkey::from(pubkey_bytes))
+        Ok(agg_key_to_pubkey(&self.aggregated_pubkey))
     }
 
     fn try_sign_message(&self, message: &[u8]) -> Result<solana_sdk::signature::Signature, solana_sdk::signer::SignerError> {
@@ -263,10 +261,7 @@ mod tests {
         assert!(agg_result.is_ok());
         
         let agg_key = agg_result.unwrap();
-        let agg_bytes = agg_key.agg_public_key.to_bytes(true);
-        let mut pubkey_bytes = [0u8; 32];
-        pubkey_bytes.copy_from_slice(&agg_bytes);
-        let agg_pubkey = Pubkey::from(pubkey_bytes);
+        let agg_pubkey = agg_key_to_pubkey(&agg_key);
         
         // The aggregated pubkey should be different from any individual pubkey
         assert!(!pubkeys.contains(&agg_pubkey));
@@ -306,10 +301,7 @@ mod tests {
         assert!(result.is_ok());
         
         let agg_key = result.unwrap();
-        let agg_bytes = agg_key.agg_public_key.to_bytes(true);
-        let mut pubkey_bytes = [0u8; 32];
-        pubkey_bytes.copy_from_slice(&agg_bytes);
-        let agg_pubkey = Pubkey::from(pubkey_bytes);
+        let agg_pubkey = agg_key_to_pubkey(&agg_key);
         
         // For a single key, the aggregated key should be the same as the original
         assert_eq!(pubkeys[0], agg_pubkey);

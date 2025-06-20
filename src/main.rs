@@ -1,7 +1,6 @@
 use clap::Parser;
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{native_token, signature::{Signer, Keypair}, hash::Hash};
-use solana_sdk::pubkey::Pubkey;
 
 mod cli;
 mod error;
@@ -66,10 +65,7 @@ fn main() -> Result<(), Error> {
 
         Options::AggregateKeys { keys } => {
             let aggkey = tss::key_agg(keys, None)?;
-            let agg_bytes = aggkey.agg_public_key.to_bytes(true);
-            let mut pubkey_bytes = [0u8; 32];
-            pubkey_bytes.copy_from_slice(&agg_bytes);
-            let aggpubkey = Pubkey::from(pubkey_bytes);
+            let aggpubkey = tss::agg_key_to_pubkey(&aggkey);
             println!("The Aggregated Public Key: {}", aggpubkey);
         }
 

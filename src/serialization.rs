@@ -19,23 +19,18 @@ pub enum Error {
 /// Message tags for different types of serialized data
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tag {
-    AggregatedKey = 0,
     AggMessage1 = 1,
     PartialSignature = 2,
     SecretAggStepOne = 3,
-    KeyAggMessage = 4,
-    Unknown,
 }
 
 impl From<u8> for Tag {
     fn from(t: u8) -> Self {
         match t {
-            _ if t == Tag::AggregatedKey as u8 => Tag::AggregatedKey,
             _ if t == Tag::AggMessage1 as u8 => Tag::AggMessage1,
             _ if t == Tag::PartialSignature as u8 => Tag::PartialSignature,
             _ if t == Tag::SecretAggStepOne as u8 => Tag::SecretAggStepOne,
-            _ if t == Tag::KeyAggMessage as u8 => Tag::KeyAggMessage,
-            _ => Tag::Unknown,
+            _ => panic!("Unknown tag: {}", t),
         }
     }
 }
@@ -43,12 +38,9 @@ impl From<u8> for Tag {
 impl Display for Tag {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Tag::AggregatedKey => f.write_str("Aggregated Key"),
             Tag::AggMessage1 => f.write_str("Aggregation Message 1"),
             Tag::PartialSignature => f.write_str("Partial Signature"),
             Tag::SecretAggStepOne => f.write_str("Secret Aggregation Step One"),
-            Tag::KeyAggMessage => f.write_str("Key Aggregation Message"),
-            Tag::Unknown => f.write_str("Unknown"),
         }
     }
 }
@@ -106,109 +98,6 @@ pub trait Serialize: Sized {
     
     /// Size hint for efficient memory allocation
     fn size_hint(&self) -> usize;
-}
-
-/// Aggregated key information for serialization
-#[derive(Debug, PartialEq)]
-pub struct AggregatedKeyInfo {
-    pub aggregated_pubkey: Pubkey,
-    pub participant_keys: Vec<Pubkey>,
-}
-
-impl Serialize for AggregatedKeyInfo {
-    fn serialize(&self, append_to: &mut Vec<u8>) {
-        append_to.reserve(self.size_hint());
-        append_to.push(Tag::AggregatedKey as u8);
-        
-        // Serialize aggregated pubkey
-        append_to.extend(self.aggregated_pubkey.to_bytes());
-        
-        // Serialize number of participant keys
-        append_to.extend((self.participant_keys.len() as u32).to_le_bytes());
-        
-        // Serialize each participant key
-        for key in &self.participant_keys {
-            append_to.extend(key.to_bytes());
-        }
-    }
-    
-    fn deserialize(b: &[u8]) -> Result<Self, Error> {
-        if b.len() < 1 + 32 + 4 {
-            return Err(Error::InputTooShort { expected: 1 + 32 + 4, found: b.len() });
-        }
-        
-        let tag = Tag::from(b[0]);
-        if tag != Tag::AggregatedKey {
-            return Err(Error::WrongTag { expected: Tag::AggregatedKey, found: tag });
-        }
-        
-        // Deserialize aggregated pubkey
-        let mut agg_bytes = [0u8; 32];
-        agg_bytes.copy_from_slice(&b[1..33]);
-        let aggregated_pubkey = Pubkey::from(agg_bytes);
-        
-        // Deserialize number of participant keys
-        let num_keys = u32::from_le_bytes([b[33], b[34], b[35], b[36]]) as usize;
-        
-        // Check if we have enough data for all keys
-        let expected_len = 1 + 32 + 4 + (num_keys * 32);
-        if b.len() < expected_len {
-            return Err(Error::InputTooShort { expected: expected_len, found: b.len() });
-        }
-        
-        // Deserialize participant keys
-        let mut participant_keys = Vec::with_capacity(num_keys);
-        for i in 0..num_keys {
-            let start = 37 + (i * 32);
-            let end = start + 32;
-            let mut key_bytes = [0u8; 32];
-            key_bytes.copy_from_slice(&b[start..end]);
-            participant_keys.push(Pubkey::from(key_bytes));
-        }
-        
-        Ok(Self {
-            aggregated_pubkey,
-            participant_keys,
-        })
-    }
-    
-    fn size_hint(&self) -> usize {
-        1 + 32 + 4 + (self.participant_keys.len() * 32)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use solana_sdk::signature::{Keypair, Signer};
-    
-    #[test]
-    fn test_aggregated_key_info_serialization() {
-        let mut rng = rand07::thread_rng();
-        
-        // Generate test data
-        let agg_keypair = Keypair::generate(&mut rng);
-        let participant_keypairs: Vec<Keypair> = (0..3).map(|_| Keypair::generate(&mut rng)).collect();
-        let participant_keys: Vec<Pubkey> = participant_keypairs.iter().map(|k| k.pubkey()).collect();
-        
-        let agg_info = AggregatedKeyInfo {
-            aggregated_pubkey: agg_keypair.pubkey(),
-            participant_keys: participant_keys.clone(),
-        };
-        
-        // Test binary serialization
-        let mut serialized = Vec::new();
-        agg_info.serialize(&mut serialized);
-        let deserialized = AggregatedKeyInfo::deserialize(&serialized).unwrap();
-        
-        assert_eq!(agg_info, deserialized);
-        
-        // Test base58 serialization
-        let base58_str = agg_info.serialize_bs58();
-        let deserialized_b58 = AggregatedKeyInfo::deserialize_bs58(&base58_str).unwrap();
-        
-        assert_eq!(agg_info, deserialized_b58);
-    }
 }
 
 /// Message containing public nonces for MPC nonce generation (step 1)

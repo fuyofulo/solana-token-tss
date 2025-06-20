@@ -209,7 +209,4 @@ pub fn get_token_balance(
     }
 }
 
-/// Helper function to get associated token address
-pub fn get_ata_address(wallet: &Pubkey, mint: &Pubkey) -> Pubkey {
-    get_associated_token_address(wallet, mint)
-} 
+ 
