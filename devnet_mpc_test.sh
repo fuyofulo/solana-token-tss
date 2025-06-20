@@ -91,7 +91,7 @@ print_info "Generating signature from participant 1..."
 sig_output1=$(cargo run -- agg-send-step-two-token \
   --private-key "$privkey1" \
   --mint "$mint_address" \
-  --amount 99998 \
+  --amount 1000000 \
   --decimals 6 \
   --to "$creator_pubkey" \
   --recent-block-hash "$recent_blockhash" \
@@ -106,7 +106,7 @@ print_info "Generating signature from participant 2..."
 sig_output2=$(cargo run -- agg-send-step-two-token \
   --private-key "$privkey2" \
   --mint "$mint_address" \
-  --amount 99998 \
+  --amount 1000000 \
   --decimals 6 \
   --to "$creator_pubkey" \
   --recent-block-hash "$recent_blockhash" \
@@ -121,7 +121,7 @@ print_info "Generating signature from participant 3..."
 sig_output3=$(cargo run -- agg-send-step-two-token \
   --private-key "$privkey3" \
   --mint "$mint_address" \
-  --amount 99998 \
+  --amount 1000000 \
   --decimals 6 \
   --to "$creator_pubkey" \
   --recent-block-hash "$recent_blockhash" \
@@ -141,7 +141,7 @@ echo "Performing MPC Step 3 - Aggregating signatures and broadcasting..."
 final_output=$(cargo run -- aggregate-signatures-and-broadcast-token \
   --signatures "$signature1,$signature2,$signature3" \
   --mint "$mint_address" \
-  --amount 99998 \
+  --amount 1000000 \
   --decimals 6 \
   --to "$creator_pubkey" \
   --recent-block-hash "$recent_blockhash" \

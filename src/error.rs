@@ -16,7 +16,6 @@ pub enum Error {
     ConfirmingTransactionFailed(ClientError),
     BalaceFailed(ClientError),
     KeyPairIsNotInKeys,
-    DeserializationFailed { error: DeserializationError, field_name: &'static str },
     PointDeserializationFailed { error: PointFromBytesError, field_name: &'static str },
     ScalarDeserializationFailed { error: DeserializationError, field_name: &'static str },
     MismatchMessages,
@@ -43,9 +42,6 @@ impl Display for Error {
             Self::ConfirmingTransactionFailed(e) => write!(f, "Transaction confirmation failed: {}", e),
             Self::BalaceFailed(e) => write!(f, "Balance query failed: {}", e),
             Self::KeyPairIsNotInKeys => write!(f, "The provided keypair is not in the list of pubkeys"),
-            Self::DeserializationFailed { error, field_name } => {
-                write!(f, "Failed deserializing {}: {}", field_name, error)
-            }
             Self::PointDeserializationFailed { error, field_name } => {
                 write!(f, "Failed deserializing point {}: {}", field_name, error)
             }

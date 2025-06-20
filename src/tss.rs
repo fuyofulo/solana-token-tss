@@ -12,7 +12,7 @@ use spl_associated_token_account;
 use spl_token;
 
 use crate::error::Error;
-use crate::serialization::{AggMessage1, SecretAggStepOne, PartialSignature, Serialize};
+use crate::serialization::{AggMessage1, SecretAggStepOne, PartialSignature};
 use crate::token::get_ata_address;
 
 /// Create the aggregate public key from a list of public keys

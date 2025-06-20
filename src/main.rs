@@ -2,7 +2,6 @@ use clap::Parser;
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{native_token, signature::{Signer, Keypair}, hash::Hash};
 use solana_sdk::pubkey::Pubkey;
-use std::fs;
 
 mod cli;
 mod error;
@@ -14,25 +13,13 @@ use cli::{Options};
 use error::Error;
 use serialization::Serialize;
 
-// Helper function to read a keypair from a file
-fn read_keypair_file(file_path: &str) -> Result<Keypair, Error> {
-    let keypair_bytes = fs::read(file_path)
-        .map_err(|e| Error::FileReadError(format!("Failed to read keypair file {}: {}", file_path, e)))?;
-    
-    if keypair_bytes.len() == 64 {
-        // Raw 64-byte keypair
-        Keypair::from_bytes(&keypair_bytes)
-            .map_err(Error::WrongKeyPair)
-    } else {
-        // Try to parse as base58 string
-        let keypair_string = String::from_utf8(keypair_bytes)
-            .map_err(|e| Error::FileReadError(format!("Invalid UTF-8 in keypair file {}: {}", file_path, e)))?;
-        let decoded = bs58::decode(keypair_string.trim())
-            .into_vec()
-            .map_err(Error::BadBase58)?;
-        Keypair::from_bytes(&decoded)
-            .map_err(Error::WrongKeyPair)
-    }
+// Helper function to parse a private key from base58 string
+fn parse_keypair(private_key: &str) -> Result<Keypair, Error> {
+    let decoded = bs58::decode(private_key.trim())
+        .into_vec()
+        .map_err(Error::BadBase58)?;
+    Keypair::from_bytes(&decoded)
+        .map_err(Error::WrongKeyPair)
 }
 
 fn main() -> Result<(), Error> {
@@ -86,33 +73,24 @@ fn main() -> Result<(), Error> {
             println!("The Aggregated Public Key: {}", aggpubkey);
         }
 
-        Options::CreateToken { mint_authority, generate_mint_authority, mint_authority_key, freeze_authority, decimals, initial_supply, net } => {
+        Options::CreateToken { mint_authority_key, freeze_authority_key, decimals, net } => {
             let rpc_client = RpcClient::new(net.get_cluster_url().to_string());
             
-            // Get mint authority keypair - from file, generate new one, or use provided key
-            let mint_authority_keypair = if generate_mint_authority {
+            // Handle mint authority - either generate new or parse provided key
+            let mint_authority_keypair = if mint_authority_key == "generate" {
                 let keypair = Keypair::new();
                 println!("Generated new mint authority:");
                 println!("Private key (base58): {}", keypair.to_base58_string());
                 println!("Public key: {}", keypair.pubkey());
                 println!();
                 keypair
-            } else if let Some(mint_auth_file) = mint_authority {
-                read_keypair_file(&mint_auth_file)?
-            } else if let Some(private_key) = mint_authority_key {
-                println!("WARNING: Passing private keys via command line is less secure!");
-                let decoded = bs58::decode(private_key.trim())
-                    .into_vec()
-                    .map_err(Error::BadBase58)?;
-                Keypair::from_bytes(&decoded)
-                    .map_err(Error::WrongKeyPair)?
             } else {
-                return Err(Error::FileReadError("One of --mint-authority, --generate-mint-authority, or --mint-authority-key must be specified".to_string()));
+                parse_keypair(&mint_authority_key)?
             };
             
-            // Read freeze authority keypair if provided
-            let freeze_authority_pubkey = if let Some(freeze_auth_file) = freeze_authority {
-                let freeze_keypair = read_keypair_file(&freeze_auth_file)?;
+            // Parse freeze authority if provided
+            let freeze_authority_pubkey = if let Some(freeze_key) = freeze_authority_key {
+                let freeze_keypair = parse_keypair(&freeze_key)?;
                 Some(freeze_keypair.pubkey())
             } else {
                 None
@@ -130,31 +108,11 @@ fn main() -> Result<(), Error> {
             println!("Token mint created successfully!");
             println!("Mint address: {}", mint_pubkey);
             println!("Transaction signature: {}", signature);
-            
-            // Mint initial supply if specified (disabled - use mint-tokens command instead)
-            if initial_supply > 0 {
-                println!("Note: Initial supply minting is disabled. Use the 'mint-tokens' command instead:");
-                println!("cargo run -- mint-tokens --mint {} --mint-authority-key <KEY> --to {} --amount {} --decimals {}", 
-                         mint_pubkey, mint_authority_keypair.pubkey(), initial_supply, decimals);
-            }
         }
 
-        Options::TransferTokens { mint, from, from_key, to, amount, net } => {
+        Options::TransferTokens { mint, from_key, to, amount, net } => {
             let rpc_client = RpcClient::new(net.get_cluster_url().to_string());
-            
-            // Get sender keypair - either from file or directly from private key
-            let from_keypair = if let Some(from_file) = from {
-                read_keypair_file(&from_file)?
-            } else if let Some(private_key) = from_key {
-                println!("WARNING: Passing private keys via command line is less secure!");
-                let decoded = bs58::decode(private_key.trim())
-                    .into_vec()
-                    .map_err(Error::BadBase58)?;
-                Keypair::from_bytes(&decoded)
-                    .map_err(Error::WrongKeyPair)?
-            } else {
-                return Err(Error::FileReadError("Either --from or --from-key must be specified".to_string()));
-            };
+            let from_keypair = parse_keypair(&from_key)?;
             
             // Transfer tokens
             let signature = token::transfer_tokens(
@@ -175,27 +133,13 @@ fn main() -> Result<(), Error> {
 
         Options::TokenBalance { mint, wallet, net } => {
             let rpc_client = RpcClient::new(net.get_cluster_url().to_string());
-            
             let balance = token::get_token_balance(&rpc_client, &wallet, &mint)?;
             println!("Token balance for wallet {}: {} tokens", wallet, balance);
         }
 
-        Options::MintTokens { mint, mint_authority, mint_authority_key, to, amount, decimals, net } => {
+        Options::MintTokens { mint, mint_authority_key, to, amount, decimals, net } => {
             let rpc_client = RpcClient::new(net.get_cluster_url().to_string());
-            
-            // Get mint authority keypair - either from file or from private key
-            let mint_authority_keypair = if let Some(mint_auth_file) = mint_authority {
-                read_keypair_file(&mint_auth_file)?
-            } else if let Some(private_key) = mint_authority_key {
-                println!("WARNING: Passing private keys via command line is less secure!");
-                let decoded = bs58::decode(private_key.trim())
-                    .into_vec()
-                    .map_err(Error::BadBase58)?;
-                Keypair::from_bytes(&decoded)
-                    .map_err(Error::WrongKeyPair)?
-            } else {
-                return Err(Error::FileReadError("Either --mint-authority or --mint-authority-key must be specified".to_string()));
-            };
+            let mint_authority_keypair = parse_keypair(&mint_authority_key)?;
             
             // Mint tokens to the specified wallet
             let signature = token::mint_tokens_to(
@@ -216,14 +160,7 @@ fn main() -> Result<(), Error> {
         }
 
         Options::AggSendStepOne { private_key } => {
-            println!("WARNING: Passing private keys via command line is less secure!");
-            
-            // Parse the private key
-            let decoded = bs58::decode(private_key.trim())
-                .into_vec()
-                .map_err(Error::BadBase58)?;
-            let keypair = Keypair::from_bytes(&decoded)
-                .map_err(Error::WrongKeyPair)?;
+            let keypair = parse_keypair(&private_key)?;
             
             // Generate nonces for MPC step 1
             let (public_msg, secret_state) = tss::step_one(keypair);
@@ -245,16 +182,8 @@ fn main() -> Result<(), Error> {
             secret_state, 
             net 
         } => {
-            println!("WARNING: Passing private keys via command line is less secure!");
-            
             let rpc_client = RpcClient::new(net.get_cluster_url().to_string());
-            
-            // Parse the private key
-            let decoded = bs58::decode(private_key.trim())
-                .into_vec()
-                .map_err(Error::BadBase58)?;
-            let keypair = Keypair::from_bytes(&decoded)
-                .map_err(Error::WrongKeyPair)?;
+            let keypair = parse_keypair(&private_key)?;
             
             // Parse recent block hash
             let block_hash = recent_block_hash.parse::<Hash>()
@@ -336,7 +265,6 @@ fn main() -> Result<(), Error> {
             println!("To: {}", to);
             println!("Amount: {} tokens", amount);
         }
-
     }
 
     Ok(())

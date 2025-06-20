@@ -56,24 +56,15 @@ pub enum Options {
     /// Create a new SPL token mint
     #[clap(display_order = 6)]
     CreateToken {
-        /// Keypair file for the mint authority (who can mint tokens)
-        #[clap(long, conflicts_with_all = &["generate-mint-authority", "mint-authority-key"])]
-        mint_authority: Option<String>,
-        /// Generate a new mint authority keypair automatically
-        #[clap(long, conflicts_with_all = &["mint-authority", "mint-authority-key"])]
-        generate_mint_authority: bool,
-        /// Private key (base58) for mint authority (WARNING: less secure than using a file)
-        #[clap(long, conflicts_with_all = &["mint-authority", "generate-mint-authority"])]
-        mint_authority_key: Option<String>,
-        /// Optional keypair file for freeze authority (who can freeze accounts)
+        /// Private key (base58) for mint authority (who can mint tokens). Use 'generate' to auto-generate.
         #[clap(long)]
-        freeze_authority: Option<String>,
+        mint_authority_key: String,
+        /// Private key (base58) for freeze authority (optional - who can freeze accounts)
+        #[clap(long)]
+        freeze_authority_key: Option<String>,
         /// Number of decimal places for the token (0-9)
         #[clap(long, default_value = "6")]
         decimals: u8,
-        /// Initial supply to mint to the mint authority
-        #[clap(long, default_value = "0")]
-        initial_supply: u64,
         /// Choose the desired network: Mainnet/Testnet/Devnet/Localnet
         #[clap(default_value = "localnet", long)]
         net: Network,
@@ -85,12 +76,9 @@ pub enum Options {
         /// Token mint address
         #[clap(long)]
         mint: Pubkey,
-        /// Keypair file for the sender wallet
-        #[clap(long, conflicts_with = "from-key")]
-        from: Option<String>,
-        /// Private key (base58) for sender wallet (WARNING: less secure than using a file)
-        #[clap(long, conflicts_with = "from")]
-        from_key: Option<String>,
+        /// Private key (base58) for sender wallet
+        #[clap(long)]
+        from_key: String,
         /// Public key of the recipient wallet
         #[clap(long)]
         to: Pubkey,
@@ -122,12 +110,9 @@ pub enum Options {
         /// Token mint address
         #[clap(long)]
         mint: Pubkey,
-        /// Keypair file for the mint authority
-        #[clap(long, conflicts_with = "mint-authority-key")]
-        mint_authority: Option<String>,
-        /// Private key (base58) for mint authority (WARNING: less secure than using a file)
-        #[clap(long, conflicts_with = "mint-authority")]
-        mint_authority_key: Option<String>,
+        /// Private key (base58) for mint authority
+        #[clap(long)]
+        mint_authority_key: String,
         /// Public key of the recipient wallet
         #[clap(long)]
         to: Pubkey,
