@@ -1,0 +1,80 @@
+1. to generate a new keypair:
+command: 
+    cargo run generate
+output: 
+    secret share (base58): 38XAevK3MC3EfRy2Fp7Eq9vNi7Rc63R78wWrSyGgDqrfCz9i7zyLRY1NgFUoiXUcR2DyvtkRCjw5x7Vyf5n3W7B1
+    public key: SBThUTrhoVxhDP8HS6KRGJner4fQGEksUFLMAP81X23
+
+2. to airdrop some sol to the account: 
+command: 
+    cargo run -- airdrop --to <PUBKEY> --amount <SOL_AMOUNT> --net localnet
+output: 
+    Airdrop transaction ID: 4KxUjyeUh9WehoRZxEdC11nn2CA93dimEK28H8Dd7axB1UdR4t98FFxuUZGmrmPNsUb1Z3j6fbcfKxzKv2sojGBt
+
+3. to check account's balance:
+command: 
+    cargo run -- balance <PUBKEY> --net localnet
+output: 
+    The balance of SBThUTrhoVxhDP8HS6KRGJner4fQGEksUFLMAP81X23 is: 2000000000
+
+4. to get recent block hash:
+command:
+    cargo run recent-block-hash
+output:
+    Recent blockhash: HAUQZ1jHUxCoUc6zNEHnrKFAbxyzJ9VZhxsGF92nu9HH
+ 
+5. to create token:
+command:
+    cargo run create-token --mint-authority-key <PRIVATE_KEY> --decimals 6 
+output: 
+    Token mint created successfully!
+    Mint address: 4jaRnpvVu5tLYuxhGWHaoFh29zSpc4fscBEPtgGiZfcy
+    Transaction signature: 3yN7wVwuV1TUDz75Pbfxu9PUj3BiE51QG748B1znJrTFPGDqjRVhH2QaJqYqjqkpnhXknZSWjH11vc7RuFiay48R
+
+6. mint tokens: 
+command: 
+    cargo run -- mint-tokens --mint <MINT_ADDRESS> --mint-authority-key <MINT_AUTHORITY> --to <RECEIVER'S KEY> --amount <amount> --decimals 6 --net localnet
+output: 
+    Tokens minted successfully!
+    Mint: 4jaRnpvVu5tLYuxhGWHaoFh29zSpc4fscBEPtgGiZfcy
+    To: 7E8azFTTKghsRfGutBVAjHdCzkV3ZncXuKYvVvzdmNpx
+    Amount: 50 tokens
+    Transaction signature: ZBFUP7GkTftzGoyi5Q5Mt1a6ZB1vczymoGZjrEk9v4SQMXAYAzYscGdjUA4GqnGDNG93U8kV7vrTKRur7ScnE6z
+
+7. check token balance:
+command: 
+    cargo run -- token-balance --mint <MINT_ADDRESS> -wallet <WALLET_ADDRESS> --net localnet
+output:
+    Token balance for wallet 7E8azFTTKghsRfGutBVAjHdCzkV3ZncXuKYvVvzdmNpx: 100 tokens
+
+8. to aggregate key:
+command:
+    cargo run -- aggregate-keys <PUBKEY1> <PUBKEY2> <PUBKEY3>
+output:
+    The Aggregated Public Key: PiRVVAEZEJns51Zv6pDfM3YyD9UEUdmDQaqFBDJ9pHC
+
+9. MPC step one, generating nonces:
+command:
+    cargo run agg-send-step-one <PRIVATE_KEY>
+    (do this for all the keys used to make the aggregate key)
+output:
+    secret share: 2SgXkBtDWzAGwawwCV8PjzyvDdhh8oavQ33JndD5stKVnDG7ap5mr3ADoxX8yJuumbTfYRY1pNmSnbXY6fD6zrkgJWDHoTVvJrjGvPgvGSryaFoqSqbTrtDY68Vio96BNyEMULtoR5LQErpUum8HFsjuKbJKcHfrkvSHWqQvgfNkmzQ2
+    public share: 2imCcHfLaUCkQpoE9CDsCcUXqwu7NPrp2rn3uZCYqLScFD3hpc5pb2MWyenpjf3EjArc2pAgYm9mM7V7c81qNGPncvwdVKXkDsCh8vPwrhFDJe4RSJPiX6BHyz2BJjPoEZTs
+
+10. MPC step two, partial transaction signatures:
+command: 
+    cargo run -- agg-send-step-two-token \
+    --private-key "base58_private_key" \
+    --mint "token_mint_address" \
+    --amount 1000 \
+    --decimals 6 \
+    --to "recipient_pubkey" \
+    --recent-block-hash "hash_from_network" \
+    --keys "pubkey1,pubkey2,pubkey3" \
+    --first-messages "msg1_from_step1,msg2_from_step1,msg3_from_step1" \
+    --secret-state "secret_from_step1" \
+    --net localnet
+output:
+    partial signature: EEWSmnxp9unKdt1yosyjMMAXvcjUgekz6mH2Yr63v849ugh21DuXqMz3LeYitoqEi17FVXB7tLsCBYWAMxw4xt3a
+
+
