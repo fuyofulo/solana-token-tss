@@ -98,3 +98,5 @@ output:
     • Transferred 25 tokens using MPC from aggregated key to creator
     • Transaction completed: 3yiz6FFnRFk5TCriLkFgZRs8PVSo1ZSbZZxrvX7pfbjfxwzJtQ3vzqjNvM8FZWnj21dTQ63ocqr6UzXqBXze55GA
 
+important note: you need to use the same block-hash for step 2 and final step to be abel to successfully execute the MPC. 
+
