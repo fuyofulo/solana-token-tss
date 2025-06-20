@@ -1,6 +1,6 @@
 # MPC Protocol Guide
 
-This document provides an in-depth explanation of the Multi-Party Computation (MPC) protocol used in Solana MPC Tokens, specifically the **MuSig2** implementation for threshold signatures.
+This document provides an in-depth explanation of the Multi-Party Computation (MPC) protocol used in Solana MPC Tokens, specifically the **MuSig2** implementation for multi-party signatures.
 
 ## 🔐 What is MuSig2?
 
@@ -281,14 +281,6 @@ cargo run -- aggregate-signatures-and-broadcast-token \
 - **Type Safety**: Rust's type system prevents many protocol violations
 
 ## 🔬 Advanced Topics
-
-### Extending to Threshold (k-of-n)
-
-The current implementation uses **n-of-n** signatures, but MuSig2 can be extended to **k-of-n** threshold signatures using additional techniques:
-
-- **Shamir's Secret Sharing**: Split private keys into shares
-- **Threshold Key Generation**: Distribute key generation across parties
-- **Partial Signature Verification**: Verify partial signatures before aggregation
 
 ### Performance Optimizations
 

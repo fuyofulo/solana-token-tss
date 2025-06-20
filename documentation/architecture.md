@@ -69,7 +69,7 @@ This document provides a comprehensive overview of the Solana MPC Tokens archite
 - Coordinate multi-step MPC operations
 - Provide user-friendly output
 
-### 3. **Threshold Signature Scheme (`tss.rs`)**
+### 3. **Multi-Party Signature Scheme (`tss.rs`)**
 
 **Purpose**: Implements the core MPC functionality using MuSig2 protocol.
 
@@ -177,7 +177,7 @@ Tag::SecretAggStepOne → Private state after step one
 ### Trust Model
 
 - **No Trusted Third Party**: The protocol doesn't require a trusted coordinator
-- **Threshold Security**: All parties must participate (n-of-n currently)
+- **Multi-Party Security**: All parties must participate (n-of-n)
 - **Cryptographic Guarantees**: Security relies on elliptic curve cryptography
 
 ## 🌐 Network Integration
@@ -214,7 +214,6 @@ Tag::SecretAggStepOne → Private state after step one
 
 The architecture is designed to support:
 
-- **Threshold Signatures**: k-of-n instead of n-of-n
 - **Additional Protocols**: Other MPC signature schemes
 - **Batch Operations**: Multiple token operations in one MPC session
 - **Cross-Chain Support**: Extension to other blockchains

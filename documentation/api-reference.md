@@ -6,7 +6,7 @@ This document provides comprehensive technical documentation for all modules, fu
 
 - **[main.rs](#mainrs)**: Entry point and command orchestration
 - **[cli.rs](#clirs)**: Command-line interface definitions
-- **[tss.rs](#tssrs)**: Threshold signature scheme implementation
+- **[tss.rs](#tssrs)**: Multi-party signature scheme implementation
 - **[token.rs](#tokenrs)**: SPL token operations
 - **[serialization.rs](#serializationrs)**: MPC message serialization
 - **[error.rs](#errorrs)**: Error handling and types
@@ -253,7 +253,7 @@ Returns the RPC endpoint URL for the network.
 
 ## tss.rs
 
-**Purpose**: Implements the MuSig2 threshold signature scheme for multi-party computation.
+**Purpose**: Implements the MuSig2 multi-party signature scheme for multi-party computation.
 
 ### Functions
 

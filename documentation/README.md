@@ -4,12 +4,12 @@ Welcome to the comprehensive documentation for **Solana MPC Tokens**, a cutting-
 
 ## What is Solana MPC Tokens?
 
-Solana MPC Tokens is a command-line application that enables **threshold signatures** for SPL token operations using **MuSig2 protocol**. Instead of a single private key controlling tokens, multiple parties can collectively sign transactions without ever revealing individual private keys or reconstructing the full private key.
+Solana MPC Tokens is a command-line application that enables **multi-party signatures** for SPL token operations using **MuSig2 protocol**. Instead of a single private key controlling tokens, multiple parties can collectively sign transactions without ever revealing individual private keys or reconstructing the full private key.
 
 ## 🔑 Key Features
 
 - **Multi-Party Token Control**: Multiple parties jointly control SPL tokens
-- **Threshold Signatures**: No single point of failure - all parties must participate
+- **Multi-Party Signatures**: No single point of failure - all parties must participate
 - **Privacy Preserving**: Individual private keys never leave their owners
 - **Solana Native**: Built specifically for SPL tokens on Solana
 - **MuSig2 Protocol**: State-of-the-art cryptographic security
@@ -54,7 +54,7 @@ Traditional cryptocurrency wallets require a single private key to control funds
 1. **Distributing Trust**: Multiple parties must cooperate to sign transactions
 2. **Eliminating Single Points of Failure**: No one party has complete control
 3. **Maintaining Privacy**: Individual secrets never need to be shared
-4. **Providing Flexibility**: Supports various threshold configurations
+4. **Providing Flexibility**: Supports multiple participants in signing
 
 ## 🎯 Use Cases
 

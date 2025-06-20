@@ -307,7 +307,7 @@ cargo clippy -- -D warnings
 Use conventional commit format:
 
 ```
-feat: add support for threshold signatures
+feat: add support for multi-party signatures
 fix: resolve nonce reuse vulnerability
 docs: update API documentation for tss module
 test: add integration tests for token operations

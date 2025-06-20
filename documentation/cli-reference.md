@@ -345,7 +345,7 @@ public share: PublicMsg1_4x7f8n1QvR6LmK8ZjT3UcB5DsG7WpA4VeN9YhMrF6qL1
 **Use Cases:**
 - Initiating MPC token transfers
 - Starting multi-party signing sessions
-- Setting up threshold signature operations
+- Setting up multi-party signature operations
 
 ### `agg-send-step-two-token`
 
@@ -402,7 +402,7 @@ partial signature: PartialSig_2x5f9n7QvR4LmK3ZjT8UcB6DsG1WpA9VeN6YhMrF2qL8
 **Use Cases:**
 - Creating partial signatures for token transfers
 - Participating in multi-party transactions
-- Contributing to threshold signatures
+- Contributing to multi-party signatures
 
 ### `aggregate-signatures-and-broadcast-token`
 
@@ -456,7 +456,7 @@ Amount: 1000000 tokens
 
 **Use Cases:**
 - Finalizing multi-party token transfers
-- Broadcasting threshold signature transactions
+- Broadcasting multi-party signature transactions
 - Completing MPC operations
 
 ---
