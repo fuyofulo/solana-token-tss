@@ -76,5 +76,25 @@ command:
     --net localnet
 output:
     partial signature: EEWSmnxp9unKdt1yosyjMMAXvcjUgekz6mH2Yr63v849ugh21DuXqMz3LeYitoqEi17FVXB7tLsCBYWAMxw4xt3a
+    (do this for all keys)
 
+11. MPC final step, aggregating partial signatures and broadcasting transaction:
+command: 
+    cargo run -- aggregate-signatures-and-broadcast-token \
+    --signatures "$signature1,$signature2,$signature3" \
+    --mint "$mint_address" \
+    --amount 99998 \
+    --decimals 6 \
+    --to "$creator_pubkey" \
+    --recent-block-hash "$recent_blockhash" \
+    --keys "$pubkey1,$pubkey2,$pubkey3" \
+    --net devnet
+
+output:
+    ✓ MPC Token Transfer Test Completed Successfully! 🎉
+    Summary:
+    • Used existing aggregated key: pC5rYzWKfkMs2uM6FeQojRzCD2k8Zz8dB9BesAmDZn3
+    • Used existing token: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+    • Transferred 25 tokens using MPC from aggregated key to creator
+    • Transaction completed: 3yiz6FFnRFk5TCriLkFgZRs8PVSo1ZSbZZxrvX7pfbjfxwzJtQ3vzqjNvM8FZWnj21dTQ63ocqr6UzXqBXze55GA
 
