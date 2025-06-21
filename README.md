@@ -1,71 +1,156 @@
 # Solana MPC Tokens
 
-**Secure Multi-Party Control for Digital Assets on Solana**
+A robust implementation of Multi-Party Computation (MPC) for managing SPL tokens and SOL on the Solana blockchain. This protocol enables secure, distributed signing of transactions without exposing private keys, making it ideal for high-security token management scenarios.
 
-Solana MPC Tokens enables multiple parties to jointly control SPL tokens without any single person having complete access. Using advanced cryptography, groups can collectively manage digital assets while maintaining individual privacy and security.
+## Core Features
 
-## 🔐 The Problem
+- **Multi-Party Computation (MPC)**: Implements threshold EdDSA signatures using distributed key generation
+- **SPL Token Support**: Full support for creating, minting, and transferring SPL tokens
+- **Native SOL Support**: MPC-based transfers of native SOL with memo support
+- **Network Flexibility**: Compatible with Solana mainnet, devnet, and localnet
+- **CLI Interface**: Comprehensive command-line interface for all MPC operations
 
-Traditional cryptocurrency wallets have a critical weakness: **single points of failure**. If someone gets access to your private key, they control everything. This creates major challenges for:
+## Prerequisites
 
-- **Organizations** needing multiple approvals for transactions
-- **Shared custody** scenarios where no single party should have full control  
-- **High-value assets** requiring enhanced security
-- **Compliance** requirements for multi-signature approvals
+- Rust toolchain (1.70.0 or later)
+- Solana CLI tools (1.16.0 or later)
+- For devnet testing: USDC SPL token account
+- For localnet testing: Running Solana validator (`solana-test-validator`)
 
-## 💡 Our Solution
+## Installation
 
-Instead of one person controlling tokens, **multiple parties must cooperate** to authorize any transaction. The magic? It all happens through advanced cryptography that:
+```bash
+git clone https://github.com/yourusername/solana-mpc-tokens
+cd solana-mpc-tokens
+cargo build --release
+```
 
-- ✅ **Requires everyone to participate** - no single point of failure
-- ✅ **Keeps individual keys private** - never shared or exposed
-- ✅ **Looks like normal transactions** - efficient and cost-effective
-- ✅ **Works on Solana natively** - built for SPL tokens
+## Quick Start
 
-## 🎯 Perfect For
+Two demonstration scripts are provided to help you understand the MPC workflow:
 
-### Corporate Treasury Management
-Multiple executives must approve before any funds can be moved.
+### 1. Localnet Full Demo
 
-### Custody Services  
-Provide secure storage without having complete control over client funds.
+The `mpc_demo_localnet.sh` script provides a comprehensive demonstration of all MPC capabilities:
 
-### Partnership Agreements
-Joint ventures where both parties must agree to fund movements.
+```bash
+# Start a local validator in a separate terminal
+solana-test-validator
 
-### Enhanced Personal Security
-Protect large holdings by requiring multiple devices/locations to approve transactions.
+# Run the demo
+./mpc_demo_localnet.sh
+```
 
-## 🌟 Why It Matters
+This demo walks through:
+- MPC participant key generation
+- Aggregated wallet creation
+- SPL token creation and minting
+- MPC-based token transfers
+- MPC-based SOL transfers
 
-**Traditional Multi-Sig**: Everyone can see how many signers there are, transactions are expensive, and the setup is complex.
+### 2. Devnet USDC Demo
 
-**Our Approach**: Transactions look identical to normal single-signature transactions, cost the same, and provide maximum privacy.
+The `devnet_mpc_test.sh` script demonstrates MPC operations with USDC on devnet:
 
-## 🚀 Getting Started
+```bash
+./devnet_mpc_test.sh
+```
 
-Ready to try multi-party token control? Our documentation will guide you through everything:
+This demo focuses on:
+- Using predefined MPC participant keys
+- Transferring USDC tokens using MPC signatures
+- Working with existing SPL tokens on devnet
 
-### 📖 **[Complete Documentation](./documentation/)**
+## Technical Protocol Overview
 
-- **[Getting Started Guide](./documentation/getting-started.md)** - Your first multi-party transaction
-- **[How It Works](./documentation/architecture.md)** - Understanding the system  
-- **[Command Reference](./documentation/cli-reference.md)** - All available operations
-- **[Security Guide](./documentation/mpc-protocol.md)** - Cryptographic foundations
+### MPC Signing Process
 
-## 🛠️ Built With
+1. **Nonce Generation (Step One)**
+   ```bash
+   solana-mpc-tokens agg-send-step-one <private-key>
+   ```
 
-- **Rust** for performance and security
-- **MuSig2** cryptographic protocol  
-- **Solana** blockchain integration
-- **SPL Tokens** native support
+2. **Partial Signature Creation (Step Two)**
+   ```bash
+   solana-mpc-tokens agg-send-step-two-token \
+     --private-key <key> \
+     --mint <address> \
+     --amount <amount> \
+     --decimals <decimals> \
+     --to <recipient> \
+     --recent-block-hash <hash> \
+     --keys <pubkey1,pubkey2,pubkey3> \
+     --first-messages <msg1,msg2> \
+     --secret-state <state>
+   ```
 
-## 📖 Technical Details
+3. **Signature Aggregation and Broadcasting**
+   ```bash
+   solana-mpc-tokens aggregate-signatures-and-broadcast-token \
+     --signatures <sig1,sig2,sig3> \
+     --mint <address> \
+     --amount <amount> \
+     --decimals <decimals> \
+     --to <recipient> \
+     --recent-block-hash <hash> \
+     --keys <pubkey1,pubkey2,pubkey3>
+   ```
 
-For developers and technical users interested in the implementation details:
+### Security Considerations
 
-**[API Reference](./documentation/api-reference.md)** | **[Development Guide](./documentation/development-guide.md)**
+- Each participant's private key never leaves their secure environment
+- Nonces are generated fresh for each signing session
+- Partial signatures are useless without the complete set
+- Transaction requires all participants' signatures to be valid
 
----
+## Advanced Usage
 
-*Empowering secure, collaborative control of digital assets through advanced cryptography.* 
+### Token Management
+
+```bash
+# Create new SPL token
+solana-mpc-tokens create-token --mint-authority-key <key> --decimals 6
+
+# Mint tokens
+solana-mpc-tokens mint-tokens \
+  --mint <address> \
+  --mint-authority-key <key> \
+  --to <recipient> \
+  --amount <amount> \
+  --decimals <decimals>
+
+# Check token balance
+solana-mpc-tokens token-balance --mint <address> --wallet <address>
+```
+
+### SOL Operations
+
+```bash
+# MPC-based SOL transfer
+solana-mpc-tokens aggregate-signatures-and-broadcast-sol \
+  --signatures <sig1,sig2,sig3> \
+  --amount <amount> \
+  --to <recipient> \
+  --memo "Transfer memo" \
+  --recent-block-hash <hash> \
+  --keys <pubkey1,pubkey2,pubkey3>
+```
+
+## Documentation
+
+For more detailed information, refer to:
+- **[CLI Reference](./documentation/cli-reference.md)** - Complete command-line interface documentation
+- **[Architecture](./documentation/architecture.md)** - Technical design and implementation details
+
+## Contributing
+
+Contributions are welcome! Please ensure your pull requests adhere to the following:
+
+- Follow Rust coding standards
+- Include comprehensive tests
+- Update documentation as needed
+- Sign your commits
+
+## License
+
+[Insert License Information] 
