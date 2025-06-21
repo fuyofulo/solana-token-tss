@@ -261,6 +261,97 @@ fn main() -> Result<(), Error> {
             println!("To: {}", to);
             println!("Amount: {} tokens", amount);
         }
+
+        Options::AggSendStepTwoSol { 
+            private_key, 
+            amount, 
+            to, 
+            memo,
+            recent_block_hash, 
+            keys, 
+            first_messages, 
+            secret_state, 
+            net: _ 
+        } => {
+            let keypair = parse_keypair(&private_key)?;
+            
+            // Parse recent block hash
+            let block_hash = recent_block_hash.parse::<Hash>()
+                .map_err(|e| Error::FileReadError(format!("Invalid block hash: {}", e)))?;
+            
+            // Parse first messages
+            let parsed_first_messages: Result<Vec<serialization::AggMessage1>, Error> = first_messages
+                .iter()
+                .map(|msg| serialization::AggMessage1::deserialize_bs58(msg))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| Error::FileReadError(format!("Failed to parse first messages: {}", e)));
+            let parsed_first_messages = parsed_first_messages?;
+            
+            // Parse secret state
+            let parsed_secret_state = serialization::SecretAggStepOne::deserialize_bs58(&secret_state)
+                .map_err(|e| Error::FileReadError(format!("Failed to parse secret state: {}", e)))?;
+            
+            // Generate partial signature for SOL transfer
+            let partial_signature = tss::step_two_sol(
+                keypair,
+                amount,
+                to,
+                memo,
+                block_hash,
+                keys,
+                parsed_first_messages,
+                parsed_secret_state,
+            )?;
+            
+            // Output the partial signature
+            println!("partial signature: {}", partial_signature.serialize_bs58());
+        }
+
+        Options::AggregateSignaturesAndBroadcastSol {
+            signatures,
+            amount,
+            to,
+            memo,
+            recent_block_hash,
+            keys,
+            net,
+        } => {
+            let rpc_client = RpcClient::new(net.get_cluster_url().to_string());
+            
+            // Parse recent block hash
+            let block_hash = recent_block_hash.parse::<Hash>()
+                .map_err(|e| Error::FileReadError(format!("Invalid block hash: {}", e)))?;
+            
+            // Parse partial signatures
+            let parsed_signatures: Result<Vec<serialization::PartialSignature>, Error> = signatures
+                .iter()
+                .map(|sig| serialization::PartialSignature::deserialize_bs58(sig))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| Error::FileReadError(format!("Failed to parse signatures: {}", e)));
+            let parsed_signatures = parsed_signatures?;
+            
+            // Aggregate signatures and create final transaction
+            let tx = tss::sign_and_broadcast_sol(
+                amount,
+                to,
+                memo.clone(),
+                block_hash,
+                keys,
+                parsed_signatures,
+            )?;
+            
+            // Send the transaction
+            let signature = rpc_client.send_transaction(&tx)
+                .map_err(|e| Error::FileReadError(format!("Failed to send transaction: {}", e)))?;
+            
+            println!("SOL transfer successful!");
+            println!("Transaction ID: {}", signature);
+            println!("To: {}", to);
+            println!("Amount: {} SOL", amount);
+            if let Some(memo_text) = memo {
+                println!("Memo: {}", memo_text);
+            }
+        }
     }
 
     Ok(())

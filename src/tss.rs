@@ -211,6 +211,110 @@ pub fn sign_and_broadcast_token(
     Ok(tx)
 }
 
+/// Generate partial signature for SOL transfer (Step 2 of MPC)
+#[allow(clippy::too_many_arguments)]
+pub fn step_two_sol(
+    keypair: Keypair,
+    amount: f64,
+    to: Pubkey,
+    memo: Option<String>,
+    recent_block_hash: Hash,
+    keys: Vec<Pubkey>,
+    first_messages: Vec<AggMessage1>,
+    secret_state: SecretAggStepOne,
+) -> Result<PartialSignature, Error> {
+    let other_nonces: Vec<_> = first_messages.into_iter().map(|msg1| msg1.public_nonces.R).collect();
+
+    // Generate the aggregate key together with the coefficient of the current keypair
+    let aggkey = key_agg(keys, Some(keypair.pubkey()))?;
+    let aggpubkey = agg_key_to_pubkey(&aggkey);
+    let extended_keypair = ExpandedKeyPair::create_from_private_key(keypair.secret().to_bytes());
+
+    // Create the unsigned SOL transaction
+    let mut tx = crate::token::create_unsigned_sol_transaction(amount, &to, memo, &aggpubkey);
+
+    let signer = PartialSigner {
+        signer_private_nonce: secret_state.private_nonces,
+        signer_public_nonce: secret_state.public_nonces,
+        other_nonces,
+        extended_keypair,
+        aggregated_pubkey: aggkey,
+    };
+    
+    // Sign the transaction using a custom `PartialSigner`, this is required to comply with Solana's API.
+    tx.sign(&[&signer], recent_block_hash);
+    let sig = tx.signatures[0];
+    Ok(PartialSignature(sig))
+}
+
+/// Aggregate partial signatures and create a final signed SOL transfer transaction (Step 3 of MPC)
+pub fn sign_and_broadcast_sol(
+    amount: f64,
+    to: Pubkey,
+    memo: Option<String>,
+    recent_block_hash: Hash,
+    keys: Vec<Pubkey>,
+    signatures: Vec<PartialSignature>,
+) -> Result<Transaction, Error> {
+    let aggkey = key_agg(keys.clone(), None)?;
+    let aggpubkey = agg_key_to_pubkey(&aggkey);
+
+    // Make sure all the `R`s are the same (first 32 bytes of each signature)
+    if !signatures[1..].iter().map(|s| &s.0.as_ref()[..32]).all(|s| s == &signatures[0].0.as_ref()[..32]) {
+        return Err(Error::MismatchMessages);
+    }
+
+    let deserialize_R = |s: &[u8]| {
+        Point::from_bytes(s).map_err(|e| Error::PointDeserializationFailed {
+            error: e,
+            field_name: "signatures R component",
+        })
+    };
+    
+    let deserialize_s = |s: &[u8]| {
+        Scalar::from_bytes(s).map_err(|e| Error::ScalarDeserializationFailed {
+            error: e,
+            field_name: "signatures s component",
+        })
+    };
+
+    // Deserialize the first signature's R and s components
+    let first_sig = musig2::PartialSignature {
+        R: deserialize_R(&signatures[0].0.as_ref()[..32])?,
+        my_partial_s: deserialize_s(&signatures[0].0.as_ref()[32..])?,
+    };
+
+    // Deserialize all other partial s values
+    let partial_sigs: Vec<_> = signatures[1..]
+        .iter()
+        .map(|s| deserialize_s(&s.0.as_ref()[32..]))
+        .collect::<Result<_, _>>()?;
+
+    // Add the signatures up using MuSig2 aggregation
+    let full_sig = musig2::aggregate_partial_signatures(&first_sig, &partial_sigs);
+
+    // Convert the aggregated signature to Solana format
+    let mut sig_bytes = [0u8; 64];
+    sig_bytes[..32].copy_from_slice(&*full_sig.R.to_bytes(true));
+    sig_bytes[32..].copy_from_slice(&full_sig.s.to_bytes());
+    let sig = Signature::from(sig_bytes);
+
+    // Create the same transaction again with the aggregated signature
+    let mut tx = crate::token::create_unsigned_sol_transaction(amount, &to, memo, &aggpubkey);
+    
+    // Insert the recent_block_hash and the signature
+    tx.message.recent_blockhash = recent_block_hash;
+    assert_eq!(tx.signatures.len(), 1);
+    tx.signatures[0] = sig;
+
+    // Verify the resulting transaction is actually valid
+    if tx.verify().is_err() {
+        return Err(Error::InvalidSignature);
+    }
+    
+    Ok(tx)
+}
+
 struct PartialSigner {
     signer_private_nonce: musig2::PrivatePartialNonces,
     signer_public_nonce: musig2::PublicPartialNonces,

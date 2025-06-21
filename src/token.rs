@@ -5,6 +5,9 @@ use solana_sdk::{
     system_instruction,
     transaction::Transaction,
     program_pack::Pack,
+    native_token,
+    instruction::Instruction,
+    message::Message,
 };
 use spl_token::{
     instruction::{initialize_mint, mint_to_checked, transfer},
@@ -207,6 +210,29 @@ pub fn get_token_balance(
         Ok(balance) => Ok(balance.amount.parse().unwrap_or(0)),
         Err(_) => Ok(0), // Account doesn't exist, so balance is 0
     }
+}
+
+/// Create an unsigned SOL transfer transaction (for MPC signing)
+pub fn create_unsigned_sol_transaction(
+    amount: f64, 
+    to: &Pubkey, 
+    memo: Option<String>, 
+    payer: &Pubkey
+) -> Transaction {
+    let amount = native_token::sol_to_lamports(amount);
+    let transfer_ins = system_instruction::transfer(payer, to, amount);
+    let msg = match memo {
+        None => Message::new(&[transfer_ins], Some(payer)),
+        Some(memo) => {
+            let memo_ins = Instruction { 
+                program_id: spl_memo::id(), 
+                accounts: Vec::new(), 
+                data: memo.into_bytes() 
+            };
+            Message::new(&[transfer_ins, memo_ins], Some(payer))
+        }
+    };
+    Transaction::new_unsigned(msg)
 }
 
  

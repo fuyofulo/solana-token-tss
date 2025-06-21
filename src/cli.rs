@@ -197,6 +197,64 @@ pub enum Options {
         #[clap(default_value = "localnet", long)]
         net: Network,
     },
+
+    /// Generate partial signature for MPC SOL transfer (Step 2)
+    #[clap(display_order = 13)]
+    AggSendStepTwoSol {
+        /// Private key (base58) of the party participating in MPC signing
+        #[clap(long)]
+        private_key: String,
+        /// Amount of SOL to transfer
+        #[clap(long)]
+        amount: f64,
+        /// Public key of the recipient wallet
+        #[clap(long)]
+        to: Pubkey,
+        /// Optional memo to attach to the transaction
+        #[clap(long)]
+        memo: Option<String>,
+        /// Recent block hash (all parties must use the same hash)
+        #[clap(long)]
+        recent_block_hash: String,
+        /// List of all participant public keys (comma-separated)
+        #[clap(long, value_delimiter = ',')]
+        keys: Vec<Pubkey>,
+        /// List of first messages from step 1 (comma-separated base58 strings)
+        #[clap(long, value_delimiter = ',')]
+        first_messages: Vec<String>,
+        /// Secret state from step 1 (base58 string)
+        #[clap(long)]
+        secret_state: String,
+        /// Choose the desired network: Mainnet/Testnet/Devnet/Localnet
+        #[clap(default_value = "localnet", long)]
+        net: Network,
+    },
+
+    /// Aggregate partial signatures and broadcast SOL transfer transaction (Step 3)
+    #[clap(display_order = 14)]
+    AggregateSignaturesAndBroadcastSol {
+        /// List of all partial signatures from step 2 (comma-separated base58 strings)
+        #[clap(long, value_delimiter = ',')]
+        signatures: Vec<String>,
+        /// Amount of SOL to transfer
+        #[clap(long)]
+        amount: f64,
+        /// Public key of the recipient wallet
+        #[clap(long)]
+        to: Pubkey,
+        /// Optional memo to attach to the transaction
+        #[clap(long)]
+        memo: Option<String>,
+        /// Recent block hash (all parties must use the same hash)
+        #[clap(long)]
+        recent_block_hash: String,
+        /// List of all participant public keys (comma-separated)
+        #[clap(long, value_delimiter = ',')]
+        keys: Vec<Pubkey>,
+        /// Choose the desired network: Mainnet/Testnet/Devnet/Localnet
+        #[clap(default_value = "localnet", long)]
+        net: Network,
+    },
 }
 
 #[derive(Debug, Clone, ValueEnum)]
