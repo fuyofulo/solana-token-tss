@@ -22,3 +22,10 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp 
+
+# some demo files
+manual_mpc_test.sh
+sol_mpc_test.sh
+complete_mpc_demo.sh
+mpc_token_test.sh
+sol_manual_test.sh

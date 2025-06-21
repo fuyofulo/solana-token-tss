@@ -100,3 +100,13 @@ output:
 
 important note: you need to use the same block-hash for step 2 and final step to be abel to successfully execute the MPC. 
 
+
+cargo run -- aggregate-signatures-and-broadcast-token \
+    --signatures BXqmMkQtE4wv5dpyA5krywjrxGRk35fgj6n6Q7DZdxCSmob4fqMm7Gka1U3xfcHx5jvQ5FRQaHDNT4jpAJMpTFHq,BXqmMkQtE4wv5dpyA5krywjrxGRk35fgj6n6Q7DZdxCSqKNdGPMEvwN15h9KZsnhSgVL9MwTPECkizC95WbLcTYj,BXqmMkQtE4wv5dpyA5krywjrxGRk35fgj6n6Q7DZdxCSewLN9sAKPuCQpDKHkfoXhoZwHE83btpV6Vg37uqvcqLw \
+    --mint HxPeMQ8CR7T6mcws1GwVnNsSunGnAbmC66YZEB91MsY2 \
+    --amount 25000000 \
+    --decimals 6 \
+    --to 89Lj9MRnLwvK6jQ87LTuo1gYx4vabANRQpHDdRJ1jDAr \
+    --recent-block-hash H17jtjqyqxmh5jThUV7wVDb9UXoEBF8AJauNfcJG19NP \
+    --keys 4yktAchJZaTpxaBqXn5YqfFhBWi66GnfiQpfxrEij3Bk,5t8CF75FAyu2LCoUbjj2m2HnKdFc1HLDtkvcSaBHitFc,CyDSshdXQ2Cq7vdJ2uzYRvwuRYNpF5q5XrF88fPvuByE \
+    --net localnet

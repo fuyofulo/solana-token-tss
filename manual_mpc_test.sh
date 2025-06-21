@@ -26,17 +26,17 @@ print_error() {
 echo -e "${BLUE}=== MPC Token Transfer Test (Using Manual Values) ===${NC}"
 
 # Use the manually tested values
-pubkey1="5s78GKriutGNSPDxP8mDK95bo2mx7mvchK4jdEg7SyFY"
-pubkey2="9eyymZqK6SdUhKwvNz93kFHWUAbmB6n1dEZ3rXwT22JM"
-pubkey3="E4qnX4EW4Cb8xp4vzPis8teRJR4rSkCiVQ6MLaZniCmT"
-privkey1="4Qb4Sy1uD69zpo3cYZa4TFu7ZHMT8gKEr2S8rRYeiZAVJG2Q9F4YijwQgpS9KwtkAVNosUNknX2JS7NzPiHBHCKL"
-privkey2="5xBJpyznDiXq5AUNQqe3N5v6NpbfGLEJwstB4orNRXAubq2bcCiFF4CyHbKThYgb1dmS1iQ1hXJXvBLdjpJ4M8JM"
-privkey3="EeQKUt9TezZaWwwoBaBkBD1e2dDb9m3k9yR6janDhtHHAb19HJGs4JfnjsJKSn712zguZEhZaLcBgKBCgio8vB7"
+pubkey1="CwyXFQvVY6sjcJHtgZBx3pbWSWETapdRPJ7FeMLvaJn3"
+pubkey2="5rrfZ41CkdqbAGgffaEH3bWWCMRn8ha6LgkPrZJNgHoT"
+pubkey3="ByLy3M8wLLppu2CABd5ukWUmPGXv3XUSNxxfQpwMd679"
+privkey1="3oDhsjUAZuSJUGv4b9oBWpooNoKerPsd9N5LsxC98T7EEbwvjEv1waJ7ccdgT3fAhVsTogZK3Vm3SbLq2Uhrs5My"
+privkey2="5D7J7ZU1DpLdDsDxUPTgALuNqVQBWXaKPnTV4ErbLLCCgJADSMLtTEL2gQsLwfJ8dF2G5iipWALd1Vg2NFvHZs65"
+privkey3="3aUPPjHqdtMAETv8nrU5sdhHD5GGwieTfvkbPXLh3Yg75QTDBDj1cKtubwP8Udb9LB67o161m1P7E3Y3H7WQrDeo"
 
-agg_key="pC5rYzWKfkMs2uM6FeQojRzCD2k8Zz8dB9BesAmDZn3"
-creator_pubkey="HUpF1G1kRfd1nomJv4XsYGxPVvQ662T5zWni2favw7CV"
-creator_privkey="5X24rz14ms7idEuMb77fRXnXTYpyaCQ36ezVi3ahNuDpK8BhZmNWAdbkiSZBWWfXNaN8d88iiueDPsaG9QNQc5GM"
-mint_address="GkRsK5bPxHDrKE7d7BawUtx1FEKKaNS8eQYJrVChjyiU"
+agg_key="5P8GV82sSd5ozd9oN8Y8M7UUmTGWjT48SWEmubkosBeg"
+creator_pubkey="9dwq81CDbTtqsaru8ijoM8Kap6HGwdWVQurUkfv7FjBB"
+creator_privkey="3ew4Q7ZrWBEpc4Gqd37eYswqEFAVdPYHp17ocbHyQW9Ra6mdkkbpnSzoni96rMkWvgaJtM55Nk7UZ92PHptTJvj7"
+mint_address="CBncwgtpNfQUPm9jwbAeqcTzUFYY5jt4nY4s5Gu4ZG9"
 
 print_info "Using manually tested values:"
 print_info "Aggregated key: $agg_key"
