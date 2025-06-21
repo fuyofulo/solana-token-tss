@@ -139,8 +139,7 @@ solana-mpc-tokens aggregate-signatures-and-broadcast-sol \
 ## Documentation
 
 For more detailed information, refer to:
-- **[CLI Reference](./documentation/cli-reference.md)** - Complete command-line interface documentation
-- **[Architecture](./documentation/architecture.md)** - Technical design and implementation details
+- **[CLI Reference](./cli-reference.md)** - Complete command-line interface documentation
 
 ## Contributing
 
