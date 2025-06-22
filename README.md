@@ -20,7 +20,7 @@ A Proof-Of-Concept showing n-of-n offchain multisignatures for SOL and SPL-Token
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/solana-mpc-tokens
+git clone https://github.com/fuyofulo/solana-token-tss
 cd solana-mpc-tokens
 cargo build --release
 ```
@@ -61,7 +61,7 @@ This demo focuses on:
 - Transferring USDC tokens using MPC signatures
 - Working with existing SPL tokens on devnet
 
-## Technical Protocol Overview
+## Technical Overview
 
 ### MPC Signing Process
 
@@ -80,7 +80,7 @@ This demo focuses on:
      --to <recipient> \
      --recent-block-hash <hash> \
      --keys <pubkey1,pubkey2,pubkey3> \
-     --first-messages <msg1,msg2> \
+     --first-messages <msg1,msg2,msg3> \
      --secret-state <state>
    ```
 
