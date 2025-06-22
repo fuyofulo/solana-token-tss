@@ -23,7 +23,7 @@ print_error() {
     echo -e "${RED}✗ $1${NC}"
 }
 
-echo -e "${BLUE}=== MPC Token Transfer Test (Using Manual Values) ===${NC}"
+echo -e "${BLUE}=== MPC Token Transfer Demo for USDC on Devnet ===${NC}"
 
 # Use the manually tested values
 pubkey1="5s78GKriutGNSPDxP8mDK95bo2mx7mvchK4jdEg7SyFY"
