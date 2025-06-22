@@ -1,6 +1,6 @@
-# Solana MPC Tokens
+# Solana Token TSS
 
-A robust implementation of Multi-Party Computation (MPC) for managing SPL tokens and SOL on the Solana blockchain. This protocol enables secure, distributed signing of transactions without exposing private keys, making it ideal for high-security token management scenarios.
+A Proof-Of-Concept showing n-of-n offchain multisignatures for SOL and SPL-Tokens on Solana. 
 
 ## Core Features
 
