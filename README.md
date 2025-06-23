@@ -103,7 +103,7 @@ This demo focuses on:
 - Partial signatures are useless without the complete set
 - Transaction requires all participants' signatures to be valid
 
-## Advanced Usage
+## Some helper features for the project
 
 ### Token Management
 
