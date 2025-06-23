@@ -76,17 +76,17 @@ print_step "Generating keys for 3 MPC participants"
 
 echo "Generating keys for Participant 1 (Alice)..."
 participant1_output=$(cargo run -- generate 2>/dev/null)
-participant1_private=$(echo "$participant1_output" | grep "secret share" | cut -d' ' -f4)
+participant1_private=$(echo "$participant1_output" | grep "private key" | cut -d':' -f2)
 participant1_public=$(echo "$participant1_output" | grep "public key" | cut -d' ' -f3)
 
 echo "Generating keys for Participant 2 (Bob)..."
 participant2_output=$(cargo run -- generate 2>/dev/null)
-participant2_private=$(echo "$participant2_output" | grep "secret share" | cut -d' ' -f4)
+participant2_private=$(echo "$participant2_output" | grep "private key" | cut -d':' -f2)
 participant2_public=$(echo "$participant2_output" | grep "public key" | cut -d' ' -f3)
 
 echo "Generating keys for Participant 3 (Charlie)..."
 participant3_output=$(cargo run -- generate 2>/dev/null)
-participant3_private=$(echo "$participant3_output" | grep "secret share" | cut -d' ' -f4)
+participant3_private=$(echo "$participant3_output" | grep "private key" | cut -d':' -f2)
 participant3_public=$(echo "$participant3_output" | grep "public key" | cut -d' ' -f3)
 
 print_success "Generated keys for all 3 participants!"
@@ -132,7 +132,7 @@ echo -e "wallets with SOL from the localnet faucet.${NC}"
 
 print_step "Generating creator wallet"
 creator_output=$(cargo run -- generate 2>/dev/null)
-creator_private=$(echo "$creator_output" | grep "secret share" | cut -d' ' -f4)
+creator_private=$(echo "$creator_output" | grep "private key" | cut -d':' -f2)
 creator_public=$(echo "$creator_output" | grep "public key" | cut -d' ' -f3)
 
 print_success "Creator wallet generated!"
@@ -190,9 +190,6 @@ echo -e "Mint Address: $mint_address"
 echo -e "Decimals: 6 (like USDC)"
 echo -e "Mint Authority: Creator wallet"
 echo -e "Transaction: $token_tx${NC}" 
-
-echo -e "${CYAN} here is the mint account info:${NC}"
-echo -e "https://explorer.solana.com/account/$mint_address?cluster=custom&customUrl=http%3A%2F%2Flocalhost%3A8899"
 
 echo -e "\n${PURPLE}waiting for 15 seconds before minting tokens${NC}"
 sleep 15

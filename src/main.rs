@@ -27,7 +27,7 @@ fn main() -> Result<(), Error> {
     match opts {
         Options::Generate => {
             let keypair = solana_sdk::signature::Keypair::generate(&mut rand07::thread_rng());
-            println!("secret share (base58): {}", keypair.to_base58_string());
+            println!("private key (base58): {}", keypair.to_base58_string());
             println!("public key: {}", keypair.pubkey());
         }
 
