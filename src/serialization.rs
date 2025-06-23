@@ -1,10 +1,9 @@
 use std::fmt::{Display, Formatter};
 
-use curv::elliptic::curves::{DeserializationError, PointFromBytesError};
+use curv::elliptic::curves::{DeserializationError, Ed25519, Point, PointFromBytesError, Scalar};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
-use multi_party_eddsa::protocols::musig2::{PrivatePartialNonces, PublicPartialNonces};
-use curv::elliptic::curves::{Point, Scalar};
+use multi_party_eddsa::protocols::musig2::{self, PrivatePartialNonces, PublicPartialNonces, PartialSignature as Musig2PartialSignature};
 
 /// Serialization-specific error types
 #[derive(Debug)]
@@ -13,7 +12,10 @@ pub enum Error {
     BadBase58(bs58::decode::Error),
     InvalidPoint(PointFromBytesError),
     InvalidScalar(DeserializationError),
-    WrongTag { expected: Tag, found: Tag },
+    WrongTag { expected: String, found: String },
+    PointDeserializationFailed { field_name: &'static str },
+    ScalarDeserializationFailed { field_name: &'static str },
+    MismatchMessages,
 }
 
 /// Message tags for different types of serialized data
@@ -57,6 +59,13 @@ impl Display for Error {
             Self::WrongTag { expected, found } => {
                 write!(f, "Expected to find message: {}, instead found: {}", expected, found)
             }
+            Self::PointDeserializationFailed { field_name } => {
+                write!(f, "Failed to deserialize point from bytes for field: {}", field_name)
+            }
+            Self::ScalarDeserializationFailed { field_name } => {
+                write!(f, "Failed to deserialize scalar from bytes for field: {}", field_name)
+            }
+            Self::MismatchMessages => write!(f, "Mismatch in messages"),
         }
     }
 }
@@ -122,7 +131,7 @@ impl Serialize for AggMessage1 {
         }
         let tag = Tag::from(b[0]);
         if tag != Tag::AggMessage1 {
-            return Err(Error::WrongTag { expected: Tag::AggMessage1, found: tag });
+            return Err(Error::WrongTag { expected: Tag::AggMessage1.to_string(), found: tag.to_string() });
         }
         let public_nonces =
             PublicPartialNonces { R: [Point::from_bytes(&b[1..32 + 1])?, Point::from_bytes(&b[1 + 32..64 + 1])?] };
@@ -162,7 +171,7 @@ impl Serialize for SecretAggStepOne {
 
         let tag = Tag::from(b[0]);
         if tag != Tag::SecretAggStepOne {
-            return Err(Error::WrongTag { expected: Tag::SecretAggStepOne, found: tag });
+            return Err(Error::WrongTag { expected: Tag::SecretAggStepOne.to_string(), found: tag.to_string() });
         }
         let private_nonces =
             PrivatePartialNonces { r: [Scalar::from_bytes(&b[1..1 + 32])?, Scalar::from_bytes(&b[1 + 32..1 + 64])?] };
@@ -195,7 +204,7 @@ impl Serialize for PartialSignature {
         }
         let tag = Tag::from(b[0]);
         if tag != Tag::PartialSignature {
-            return Err(Error::WrongTag { expected: Tag::PartialSignature, found: tag });
+            return Err(Error::WrongTag { expected: Tag::PartialSignature.to_string(), found: tag.to_string() });
         }
         let mut sig_bytes = [0u8; 64];
         sig_bytes.copy_from_slice(&b[1..1 + 64]);
@@ -204,5 +213,54 @@ impl Serialize for PartialSignature {
     
     fn size_hint(&self) -> usize {
         1 + 64
+    }
+}
+
+impl PartialSignature {
+    pub fn deserialize_r(s: &[u8]) -> Result<Point<Ed25519>, Error> {
+        Point::from_bytes(s).map_err(|_e| Error::PointDeserializationFailed { field_name: "signatures R component" })
+    }
+
+    pub fn deserialize_s(s: &[u8]) -> Result<Scalar<Ed25519>, Error> {
+        Scalar::from_bytes(s).map_err(|_e| Error::ScalarDeserializationFailed { field_name: "signatures s component" })
+    }
+
+    pub fn to_musig2_partial_signature(&self) -> Result<Musig2PartialSignature, Error> {
+        Ok(Musig2PartialSignature {
+            R: Self::deserialize_r(&self.0.as_ref()[..32])?,
+            my_partial_s: Self::deserialize_s(&self.0.as_ref()[32..])?,
+        })
+    }
+
+    pub fn aggregate_signatures(signatures: &[PartialSignature]) -> Result<Signature, Error> {
+        if signatures.is_empty() {
+            return Err(Error::InputTooShort { expected: 1, found: 0 });
+        }
+
+        // Make sure all the `R`s are the same
+        if !signatures[1..].iter()
+            .map(|s| &s.0.as_ref()[..32])
+            .all(|s| s == &signatures[0].0.as_ref()[..32]) {
+            return Err(Error::MismatchMessages);
+        }
+
+        // Convert first signature to MuSig2 format
+        let first_sig = signatures[0].to_musig2_partial_signature()?;
+
+        // Convert remaining signatures
+        let partial_sigs: Vec<_> = signatures[1..]
+            .iter()
+            .map(|s| Self::deserialize_s(&s.0.as_ref()[32..]))
+            .collect::<Result<_, _>>()?;
+
+        // Aggregate using MuSig2
+        let full_sig = musig2::aggregate_partial_signatures(&first_sig, &partial_sigs);
+
+        // Convert to Solana format
+        let mut sig_bytes = [0u8; 64];
+        sig_bytes[..32].copy_from_slice(&*full_sig.R.to_bytes(true));
+        sig_bytes[32..].copy_from_slice(&full_sig.s.to_bytes());
+        
+        Ok(Signature::from(sig_bytes))
     }
 }

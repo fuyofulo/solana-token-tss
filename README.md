@@ -141,15 +141,4 @@ solana-mpc-tokens aggregate-signatures-and-broadcast-sol \
 For more detailed information, refer to:
 - **[CLI Reference](./cli-reference.md)** - Complete command-line interface documentation
 
-## Contributing
 
-Contributions are welcome! Please ensure your pull requests adhere to the following:
-
-- Follow Rust coding standards
-- Include comprehensive tests
-- Update documentation as needed
-- Sign your commits
-
-## License
-
-[Insert License Information] 

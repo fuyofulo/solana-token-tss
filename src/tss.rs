@@ -29,10 +29,8 @@ pub fn agg_key_to_pubkey(agg_key: &musig2::PublicKeyAgg) -> Pubkey {
 pub fn key_agg(keys: Vec<Pubkey>, key: Option<Pubkey>) -> Result<musig2::PublicKeyAgg, Error> {
     // Convert Solana pubkeys to Ed25519 points
     let convert_keys = |k: Pubkey| {
-        Point::from_bytes(&k.to_bytes()).map_err(|e| Error::PointDeserializationFailed {
-            error: e,
-            field_name: "keys",
-        })
+        Point::from_bytes(&k.to_bytes())
+            .map_err(|e| Error::SerializationError(format!("Failed to deserialize point from key: {}", e)))
     };
     
     // Convert all keys to Ed25519 points
@@ -49,6 +47,9 @@ pub fn key_agg(keys: Vec<Pubkey>, key: Option<Pubkey>) -> Result<musig2::PublicK
 /// This is the first step in the MPC signing process
 pub fn step_one(keypair: Keypair) -> (AggMessage1, SecretAggStepOne) {
     let extended_keypair = ExpandedKeyPair::create_from_private_key(keypair.secret().to_bytes());
+
+    println!("private key: {:?}", keypair.secret().to_bytes());
+    println!("extended_keypair: {:?}", extended_keypair);
     let (private_nonces, public_nonces) = musig2::generate_partial_nonces(&extended_keypair, None);
 
     (
@@ -102,41 +103,26 @@ pub fn create_unsigned_token_transaction(
     decimals: u8,
     to: &Pubkey,
     payer: &Pubkey,
-    rpc_client: &RpcClient,
+    _rpc_client: &RpcClient,
 ) -> Result<Transaction, Error> {
-    // Calculate source and destination ATAs
+    // Calculate ATAs without checking existence
     let source_ata = spl_associated_token_account::get_associated_token_address(payer, &mint);
     let destination_ata = spl_associated_token_account::get_associated_token_address(to, &mint);
     
-    let mut instructions = Vec::new();
-    
-    // Check if destination ATA exists, if not, create it
-    if rpc_client.get_account(&destination_ata).is_err() {
-        let create_ata_ix = spl_associated_token_account::instruction::create_associated_token_account(
-            payer,  // fee payer
-            to,     // wallet owner
-            &mint,  // mint
-            &spl_token::id(),
-        );
-        instructions.push(create_ata_ix);
-    }
-    
-    // Create the token transfer instruction
+    // Create only the transfer instruction
     let transfer_ix = spl_token::instruction::transfer_checked(
         &spl_token::id(),
         &source_ata,
         &mint,
         &destination_ata,
-        payer,      // authority (aggregated key)
-        &[],        // signers (will be filled by MPC)
+        payer,      
+        &[],        
         amount,
         decimals,
     ).map_err(|e| Error::TokenTransferFailed(format!("Failed to create transfer instruction: {}", e)))?;
     
-    instructions.push(transfer_ix);
-    
-    // Create the message and transaction
-    let msg = Message::new(&instructions, Some(payer));
+    // Create message and transaction
+    let msg = Message::new(&[transfer_ix], Some(payer));
     Ok(Transaction::new_unsigned(msg))
 }
 
@@ -155,60 +141,56 @@ pub fn sign_and_broadcast_token(
     let aggkey = key_agg(keys.clone(), None)?;
     let aggpubkey = agg_key_to_pubkey(&aggkey);
 
-    // Make sure all the `R`s are the same (first 32 bytes of each signature)
-    if !signatures[1..].iter().map(|s| &s.0.as_ref()[..32]).all(|s| s == &signatures[0].0.as_ref()[..32]) {
-        return Err(Error::MismatchMessages);
+    // Calculate ATAs
+    let source_ata = spl_associated_token_account::get_associated_token_address(&aggpubkey, &mint);
+    let destination_ata = spl_associated_token_account::get_associated_token_address(&to, &mint);
+
+    // Prepare instructions
+    let mut instructions = Vec::new();
+
+    // Check and create destination ATA if needed
+    if rpc_client.get_account(&destination_ata).is_err() {
+        let create_ata_ix = spl_associated_token_account::instruction::create_associated_token_account(
+            &aggpubkey,  // fee payer
+            &to,         // wallet owner
+            &mint,       // mint
+            &spl_token::id(),
+        );
+        instructions.push(create_ata_ix);
     }
 
-    let deserialize_R = |s: &[u8]| {
-        Point::from_bytes(s).map_err(|e| Error::PointDeserializationFailed {
-            error: e,
-            field_name: "signatures R component",
-        })
-    };
-    
-    let deserialize_s = |s: &[u8]| {
-        Scalar::from_bytes(s).map_err(|e| Error::ScalarDeserializationFailed {
-            error: e,
-            field_name: "signatures s component",
-        })
-    };
+    // Add transfer instruction
+    let transfer_ix = spl_token::instruction::transfer_checked(
+        &spl_token::id(),
+        &source_ata,
+        &mint,
+        &destination_ata,
+        &aggpubkey,
+        &[],
+        amount,
+        decimals,
+    ).map_err(|e| Error::TokenTransferFailed(format!("Failed to create transfer instruction: {}", e)))?;
+    instructions.push(transfer_ix);
 
-    // Deserialize the first signature's R and s components
-    let first_sig = musig2::PartialSignature {
-        R: deserialize_R(&signatures[0].0.as_ref()[..32])?,
-        my_partial_s: deserialize_s(&signatures[0].0.as_ref()[32..])?,
-    };
+    // Create final transaction with all instructions
+    let mut final_tx = Transaction::new_with_payer(
+        &instructions,
+        Some(&aggpubkey)
+    );
+    final_tx.message.recent_blockhash = recent_block_hash;
 
-    // Deserialize all other partial s values
-    let partial_sigs: Vec<_> = signatures[1..]
-        .iter()
-        .map(|s| deserialize_s(&s.0.as_ref()[32..]))
-        .collect::<Result<_, _>>()?;
+    // Aggregate signatures
+    let sig = PartialSignature::aggregate_signatures(&signatures)?;
 
-    // Add the signatures up using MuSig2 aggregation
-    let full_sig = musig2::aggregate_partial_signatures(&first_sig, &partial_sigs);
-
-    // Convert the aggregated signature to Solana format
-    let mut sig_bytes = [0u8; 64];
-    sig_bytes[..32].copy_from_slice(&*full_sig.R.to_bytes(true));
-    sig_bytes[32..].copy_from_slice(&full_sig.s.to_bytes());
-    let sig = Signature::from(sig_bytes);
-
-    // Create the same transaction again with the aggregated signature
-    let mut tx = create_unsigned_token_transaction(mint, amount, decimals, &to, &aggpubkey, rpc_client)?;
-    
-    // Insert the recent_block_hash and the signature
-    tx.message.recent_blockhash = recent_block_hash;
-    assert_eq!(tx.signatures.len(), 1);
-    tx.signatures[0] = sig;
+    // Insert the signature
+    final_tx.signatures = vec![sig];
 
     // Verify the resulting transaction is actually valid
-    if tx.verify().is_err() {
+    if final_tx.verify().is_err() {
         return Err(Error::InvalidSignature);
     }
     
-    Ok(tx)
+    Ok(final_tx)
 }
 
 /// Generate partial signature for SOL transfer (Step 2 of MPC)
@@ -261,21 +243,17 @@ pub fn sign_and_broadcast_sol(
 
     // Make sure all the `R`s are the same (first 32 bytes of each signature)
     if !signatures[1..].iter().map(|s| &s.0.as_ref()[..32]).all(|s| s == &signatures[0].0.as_ref()[..32]) {
-        return Err(Error::MismatchMessages);
+        return Err(Error::SerializationError("Mismatch in number of messages".to_string()));
     }
 
     let deserialize_R = |s: &[u8]| {
-        Point::from_bytes(s).map_err(|e| Error::PointDeserializationFailed {
-            error: e,
-            field_name: "signatures R component",
-        })
+        Point::from_bytes(s)
+            .map_err(|e| Error::SerializationError(format!("Failed to deserialize R component: {}", e)))
     };
     
     let deserialize_s = |s: &[u8]| {
-        Scalar::from_bytes(s).map_err(|e| Error::ScalarDeserializationFailed {
-            error: e,
-            field_name: "signatures s component",
-        })
+        Scalar::from_bytes(s)
+            .map_err(|e| Error::SerializationError(format!("Failed to deserialize s component: {}", e)))
     };
 
     // Deserialize the first signature's R and s components

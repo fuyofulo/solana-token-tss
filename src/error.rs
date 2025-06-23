@@ -1,9 +1,9 @@
 use std::fmt::{Display, Formatter};
 
-use curv::elliptic::curves::{DeserializationError, PointFromBytesError};
 use bs58::decode::Error as Bs58Error;
 use ed25519_dalek::SignatureError;
 use solana_client::client_error::ClientError;
+use crate::serialization;
 
 /// Custom application error type
 #[derive(Debug)]
@@ -16,15 +16,13 @@ pub enum Error {
     ConfirmingTransactionFailed(ClientError),
     BalaceFailed(ClientError),
     KeyPairIsNotInKeys,
-    PointDeserializationFailed { error: PointFromBytesError, field_name: &'static str },
-    ScalarDeserializationFailed { error: DeserializationError, field_name: &'static str },
-    MismatchMessages,
     InvalidSignature,
     TokenCreationFailed(String),
     TokenMintFailed(String),
     TokenTransferFailed(String),
     TokenAccountNotFound,
     FileReadError(String),
+    SerializationError(String),
 }
 
 impl Display for Error {
@@ -42,19 +40,13 @@ impl Display for Error {
             Self::ConfirmingTransactionFailed(e) => write!(f, "Transaction confirmation failed: {}", e),
             Self::BalaceFailed(e) => write!(f, "Balance query failed: {}", e),
             Self::KeyPairIsNotInKeys => write!(f, "The provided keypair is not in the list of pubkeys"),
-            Self::PointDeserializationFailed { error, field_name } => {
-                write!(f, "Failed deserializing point {}: {}", field_name, error)
-            }
-            Self::ScalarDeserializationFailed { error, field_name } => {
-                write!(f, "Failed deserializing scalar {}: {}", field_name, error)
-            }
-            Self::MismatchMessages => write!(f, "Mismatch messages"),
             Self::InvalidSignature => write!(f, "Invalid signature"),
             Self::TokenCreationFailed(e) => write!(f, "Token creation failed: {}", e),
             Self::TokenMintFailed(e) => write!(f, "Token minting failed: {}", e),
             Self::TokenTransferFailed(e) => write!(f, "Token transfer failed: {}", e),
             Self::TokenAccountNotFound => write!(f, "Token account not found"),
             Self::FileReadError(e) => write!(f, "File read error: {}", e),
+            Self::SerializationError(e) => write!(f, "Serialization error: {}", e),
         }
     }
 }
@@ -68,6 +60,12 @@ impl From<Bs58Error> for Error {
 impl From<SignatureError> for Error {
     fn from(e: SignatureError) -> Self {
         Self::WrongKeyPair(e)
+    }
+}
+
+impl From<serialization::Error> for Error {
+    fn from(e: serialization::Error) -> Self {
+        Error::SerializationError(e.to_string())
     }
 }
 
