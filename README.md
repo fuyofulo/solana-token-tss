@@ -14,7 +14,7 @@ A Proof-Of-Concept showing n-of-n offchain multisignatures for SOL and SPL-Token
 
 - Rust toolchain (1.70.0 or later)
 - Solana CLI tools (1.16.0 or later)
-- For devnet testing: USDC SPL token account
+- For devnet testing: Just run the script 
 - For localnet testing: Running Solana validator (`solana-test-validator`)
 
 ## Installation
